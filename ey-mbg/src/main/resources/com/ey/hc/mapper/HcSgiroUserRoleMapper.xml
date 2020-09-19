@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ey.hc.mapper.HcShiroUserRoleMapper">
+
+    <select id="getRole" parameterType="java.lang.String" resultType="String">
+        select r.name from hc_role r,hc_user u, hc_user_and_role huc
+        where
+        r.id=huc.r_id
+        and u.id=huc.u_id
+        <if test="username != null">
+            and u.username=#{username}
+        </if>
+    </select>
+
+
+    <select id="getPermission" parameterType="java.lang.String" resultType="com.ey.hc.model.HcPermission">
+          select p.name from hc_permission p,hc_role r, hc_role_and_permission hrp
+          where   p.id=hrp.p_id
+          and r.id=hrp.r_id
+        <if test="name != null">
+          and r.name=#{name}
+        </if>
+    </select>
+
+    <select id="selectUserOne" parameterType="java.lang.String" resultType="com.ey.hc.model.HcUser">
+     select id, username, password, status, createtime, updatetime, u_img, salt from
+     hc_user
+      where
+     <if test="username != null">
+         username=#{username}
+    </if>
+
+    </select>
+
+
+</mapper>
+
