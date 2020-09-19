@@ -11,7 +11,7 @@ public class HcUser implements Serializable {
      * @mbg.generated
     */
     @ApiModelProperty(value = "用户Id标识")
-    private Long uId;
+    private Long id;
 
     /**
      * 用户登录名
@@ -61,14 +61,16 @@ public class HcUser implements Serializable {
     @ApiModelProperty(value = "用户头像")
     private String uImg;
 
+    private String salt;
+
     private static final long serialVersionUID = 1L;
 
-    public Long getuId() {
-        return uId;
+    public Long getId() {
+        return id;
     }
 
-    public void setuId(Long uId) {
-        this.uId = uId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -119,19 +121,28 @@ public class HcUser implements Serializable {
         this.uImg = uImg;
     }
 
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getClass().getSimpleName());
         sb.append(" [");
         sb.append("Hash = ").append(hashCode());
-        sb.append(", uId=").append(uId);
+        sb.append(", id=").append(id);
         sb.append(", username=").append(username);
         sb.append(", password=").append(password);
         sb.append(", status=").append(status);
         sb.append(", createtime=").append(createtime);
         sb.append(", updatetime=").append(updatetime);
         sb.append(", uImg=").append(uImg);
+        sb.append(", salt=").append(salt);
         sb.append(", serialVersionUID=").append(serialVersionUID);
         sb.append("]");
         return sb.toString();

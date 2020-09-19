@@ -4,14 +4,14 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HcUserRoleExample {
+public class HcUserAndRoleExample {
     protected String orderByClause;
 
     protected boolean distinct;
 
     protected List<Criteria> oredCriteria;
 
-    public HcUserRoleExample() {
+    public HcUserAndRoleExample() {
         oredCriteria = new ArrayList<Criteria>();
     }
 

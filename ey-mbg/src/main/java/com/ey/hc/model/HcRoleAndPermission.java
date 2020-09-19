@@ -3,7 +3,7 @@ package com.ey.hc.model;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 
-public class HcRolePermission implements Serializable {
+public class HcRoleAndPermission implements Serializable {
     /**
      * id
      *

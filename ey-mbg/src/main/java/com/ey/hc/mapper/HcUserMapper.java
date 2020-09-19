@@ -10,7 +10,7 @@ public interface HcUserMapper {
 
     int deleteByExample(HcUserExample example);
 
-    int deleteByPrimaryKey(Long uId);
+    int deleteByPrimaryKey(Long id);
 
     int insert(HcUser record);
 
@@ -18,7 +18,7 @@ public interface HcUserMapper {
 
     List<HcUser> selectByExample(HcUserExample example);
 
-    HcUser selectByPrimaryKey(Long uId);
+    HcUser selectByPrimaryKey(Long id);
 
     int updateByExampleSelective(@Param("record") HcUser record, @Param("example") HcUserExample example);
 
