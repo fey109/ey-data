@@ -2,8 +2,8 @@ package com.ey.hc.ums.controller;
 
 import com.ey.hc.common.enums.ResultCode;
 import com.ey.hc.common.api.ResultJson;
+import com.ey.hc.model.HcUser;
 import com.ey.hc.ums.dto.LoginFrom;
-import com.ey.hc.ums.service.UserInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +17,7 @@ public class LoginController {
 
 
     @Autowired
-    private UserInfoService userInfoService;
+    private HcUser userInfoService;
 
     @Autowired
     private LoginFrom loginFrom;
