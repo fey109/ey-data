@@ -61,6 +61,12 @@ public class HcUser implements Serializable {
     @ApiModelProperty(value = "用户头像")
     private String uImg;
 
+    /**
+     * 盐值
+     *
+     * @mbg.generated
+    */
+    @ApiModelProperty(value = "盐值")
     private String salt;
 
     private static final long serialVersionUID = 1L;
