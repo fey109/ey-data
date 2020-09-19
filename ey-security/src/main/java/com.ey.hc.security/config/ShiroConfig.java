@@ -1,5 +1,6 @@
 package com.ey.hc.security.config;
 
+import com.ey.hc.security.filter.JwtFilter;
 import com.ey.hc.security.realm.UmsRealm;
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
 import org.apache.shiro.mgt.DefaultSessionStorageEvaluator;
@@ -10,10 +11,13 @@ import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.web.filter.DelegatingFilterProxy;
 
+import javax.servlet.Filter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,56 +25,60 @@ import java.util.Map;
 public class ShiroConfig {
 
 
-    @Bean
+    /**
+     * 先经过token过滤器，如果检测到请求头存在 token，则用 token 去 login，接着走 Realm 去验证
+     */
+    @Bean(name="shiroFilter")
     public ShiroFilterFactoryBean shiroFilter(SecurityManager securityManager) {
 
         ShiroFilterFactoryBean shiroFilterFactoryBean =new ShiroFilterFactoryBean();
-
+        // 添加自己的过滤器并且取名为jwt
+        Map<String, Filter> filterMap = new LinkedHashMap<>();
+        //设置我们自定义的JWT过滤器
+        filterMap.put("jwt",new JwtFilter());
+        shiroFilterFactoryBean.setFilters(filterMap);
         shiroFilterFactoryBean.setSecurityManager(securityManager);
-
         //这里设置了登录接口  如果访问了某个接口没有登录  就会调用这个接口（如果不是前后端分离就返回页面）
         shiroFilterFactoryBean.setLoginUrl("/ums/login");
-
         //如果是前后端分离则不需要这个
         //shiroFilterFactoryBean.setSuccessUrl("/");
-
         //这个是用户登录了  但没有权限 就会调用这个接口
         shiroFilterFactoryBean.setUnauthorizedUrl("/ums/permiss");
-
         /**
          *拦截器路径 坑1：部分路径无法拦截，拦截效果时有时无，因为使用了hashMap 是无序的应该使用linkedHashMap
          *原因在于过滤链执行顺序是顺序执行所以需要使用有序的linkedHashMap
          **/
-        Map<String,String> filterMap=new LinkedHashMap<>();
+        Map<String,String> filterRuleMap=new LinkedHashMap<>();
 
         //匿名访问  游客访问路径
-        filterMap.put("/ums/**","anon");
-
+        filterRuleMap.put("/ums/**","anon");
         //退出过滤器
-        filterMap.put("/ums/logout","logout");
-
+        filterRuleMap.put("/ums/logout","logout");
         //登录用户才能访问
-        filterMap.put("/author/**","author");
-
+        filterRuleMap.put("/author/**","author");
         //只有管理员才能访问
-        filterMap.put("/admin/**","roles[admin]");
+        filterRuleMap.put("/admin/**","roles[admin]");
+        //坑2：过滤链是顺序执行的，从上而下，一般来讲/** 是放到最下面
+      /*  //放行Swagger接口
+        filterRuleMap.put("/v2/api-docs","anon");
+        filterRuleMap.put("/swagger-resources/configuration/ui","anon");
+        filterRuleMap.put("/swagger-resources","anon");
+        filterRuleMap.put("/swagger-resources/configuration/security","anon");
+        filterRuleMap.put("/swagger-ui.html","anon");
+        filterRuleMap.put("/webjars/**","anon");*/
+        // 所有请求通过我们自己的JWT Filter
+        filterRuleMap.put("/**", "jwt");
 
-        //坑2：过滤链是顺序执行的，从上而下，一般来讲/** 是放到最下面的
-
-        //authc : url 必须通过认证才能访问
-        //anon : url可以匿名访问
-        filterMap.put("/**","authc");
-
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(filterMap);
+        shiroFilterFactoryBean.setFilterChainDefinitionMap(filterRuleMap);
 
         return  shiroFilterFactoryBean;
 
     }
 
     @Bean
-    public  SecurityManager securityManager(){
+    public  SecurityManager securityManager(HashedCredentialsMatcher matcher){
         DefaultWebSecurityManager securityManager=new DefaultWebSecurityManager();
-        securityManager.setRealm(umsRealm());
+        securityManager.setRealm(umsRealm(matcher));
 
         /*
          * 关闭shiro自带的session
@@ -85,7 +93,7 @@ public class ShiroConfig {
 
     //自定义realm注入
     @Bean
-    public UmsRealm umsRealm(){
+    public UmsRealm umsRealm(HashedCredentialsMatcher matcher){
         UmsRealm umsRealm=new UmsRealm();
         //密码加密方式，也可以自定义
         umsRealm.setCredentialsMatcher(hashedCredentialsMatcher());
@@ -93,7 +101,21 @@ public class ShiroConfig {
     }
 
 
-
+    /**
+     * SpringShiroFilter首先注册到spring容器
+     * 然后被包装成FilterRegistrationBean
+     * 最后通过FilterRegistrationBean注册到servlet容器
+     * @return
+     */
+    @Bean
+    public FilterRegistrationBean delegatingFilterProxy(){
+        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+        DelegatingFilterProxy proxy = new DelegatingFilterProxy();
+        proxy.setTargetFilterLifecycle(true);
+        proxy.setTargetBeanName("shiroFilter");
+        filterRegistrationBean.setFilter(proxy);
+        return filterRegistrationBean;
+    }
 
     //加密方式
     @Bean
@@ -102,7 +124,7 @@ public class ShiroConfig {
         //设置散列算法 ：这里设置的MD5
         credentialsMatcher.setHashAlgorithmName("MD5");
         //设置多重加密算法 ：这里设置的是2次加密(mad5(md5(xxx)))
-        credentialsMatcher.setHashIterations(2);
+        credentialsMatcher.setHashIterations(1024);
         credentialsMatcher.setStoredCredentialsHexEncoded(true);
         return credentialsMatcher;
     }
@@ -135,10 +157,17 @@ public class ShiroConfig {
     }
 
     @Bean
-    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor() {
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(HashedCredentialsMatcher matcher) {//@Qualifier("hashedCredentialsMatcher")
         AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
-        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager());
+        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager(matcher));
         return authorizationAttributeSourceAdvisor;
     }
+    @Bean
+    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
+        DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator=new DefaultAdvisorAutoProxyCreator();
+        defaultAdvisorAutoProxyCreator.setProxyTargetClass(true);
+        return defaultAdvisorAutoProxyCreator;
+    }
+
 
 }
